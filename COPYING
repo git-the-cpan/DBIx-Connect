@@ -1,7 +1,3 @@
-
-use DBIx::Connect;
-
-=for comment
 		  GNU LESSER GENERAL PUBLIC LICENSE
 		       Version 2.1, February 1999
 
@@ -505,12 +501,4 @@ necessary.  Here is a sample; alter the names:
 
 That's all there is to it!
 
-
-
-=cut
-
-my $config = shift or die  'MUST SUPPLY CONFIG';
-warn "CONFIG: $config";
-
-DBIx::Connect->to($config);
 
