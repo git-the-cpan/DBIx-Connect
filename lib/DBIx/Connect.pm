@@ -31,12 +31,14 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = sprintf '%s', q{$Revision: 1.2 $} =~ /\S+\s+(\S+)/ ;
-
-
+our $VERSION = sprintf '%s', q{$Revision: 1.4 $} =~ /\S+\s+(\S+)/ ;
 
 # Preloaded methods go here.
 
+# dont you just love the emacs Perl mode :)
+
+			       defined($ENV{DBIX_CONN}) or die
+				   'environmental variable DBIX_CONN not defined';
 
 my $stdin_flag = '<STDIN>';
 
