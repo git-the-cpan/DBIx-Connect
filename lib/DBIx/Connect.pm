@@ -31,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = sprintf '%s', q{$Revision: 1.5 $} =~ /\S+\s+(\S+)/ ;
+our $VERSION = sprintf '%s', q{$Revision: 1.7 $} =~ /\S+\s+(\S+)/ ;
 
 # Preloaded methods go here.
 
@@ -75,7 +75,7 @@ sub data_array {
 
 sub to {
 
-    my @connect_data = data_for(@_);
+    my @connect_data = data_array(@_); 
 
     my $dbh = DBI->connect(@connect_data);
 
@@ -92,7 +92,7 @@ __END__
 
 =head1 NAME
 
-DBIx::Connect - support for DBI connection (info) via AppConfig 
+DBIx::Connect - DBI, DBIx::AnyDBD, and Alzabo database connection (info) via AppConfig 
 
 =head1 SYNOPSIS
 
@@ -188,8 +188,8 @@ be stored on disk at all.
 vis-a-vis connection,
 DBIx::Password has one method, C<connect> which returns a C<$dbh>. While
 DBIx::Connect also supplies such a method (named C<to>), it also supplies a 
-C<data_for> method which returns an array which can be passed to
-any other DBI connection scheme, the must ubiquitous of which is 
+C<data_hash> and C<data_array> method which can be passed to
+any other DBI connection scheme, the must ubiquitous of which are Alzabo and
 DBIx::AnyDBD, which handles connections for you after you give it the
 connection data.
 
