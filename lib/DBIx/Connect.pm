@@ -31,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = sprintf '%s', q{$Revision: 1.1 $} =~ /\S+\s+(\S+)/ ;
+our $VERSION = sprintf '%s', q{$Revision: 1.2 $} =~ /\S+\s+(\S+)/ ;
 
 
 
@@ -59,6 +59,7 @@ sub data_for {
 	ReadMode 2; 
 	print "Enter Password (will not be echoed to screen): ";
 	$site{pass} = <STDIN>;
+	chomp($site{pass});
     }
 
     ($site{dsn}, $site{user}, $site{pass}, $site{attr});
@@ -110,7 +111,8 @@ DBIx::Connect - support for DBI connection (info) via AppConfig
  my $config = shift or die "must give label for config";
  my $dbh    = DBIx::Connect->to($config);
 
- # over-ride .appconfig-dbi from the command line:
+ # over-ride .appconfig-dbi from the command line
+ # not recommended for passwords as C<ps> will reveal the password
  perl dbi-script.pl basic -basic_user tim_bunce -basic_pass dbi_rocks
  perl dbi-script.pl basic -basic_attr "RaiseError=1" -basic_attr "Taint=0"
 
