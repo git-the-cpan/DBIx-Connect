@@ -1,0 +1,6 @@
+Changes
+Makefile.PL
+MANIFEST
+lib/DBIx/Connect.pm
+scripts/simple.pl
+test.pl

@@ -1,0 +1,6 @@
+Revision history for Perl extension AppConfig::DBI.
+
+0.01  Fri Mar  1 21:26:08 2002
+	- original version; created by h2xs 1.1.1.4 with options
+		-A -X -n AppConfig::DBI
+
