@@ -31,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = sprintf '%s', q{$Revision: 1.4 $} =~ /\S+\s+(\S+)/ ;
+our $VERSION = sprintf '%s', q{$Revision: 1.5 $} =~ /\S+\s+(\S+)/ ;
 
 # Preloaded methods go here.
 
@@ -43,7 +43,7 @@ our $VERSION = sprintf '%s', q{$Revision: 1.4 $} =~ /\S+\s+(\S+)/ ;
 my $stdin_flag = '<STDIN>';
 
 
-sub data_for {
+sub data_hash {
     my (undef, $config_name) = @_;
 
     my $config = AppConfig::Std->new( { CASE=>1 } );
@@ -64,7 +64,13 @@ sub data_for {
 	chomp($site{pass});
     }
 
-    ($site{dsn}, $site{user}, $site{pass}, $site{attr});
+    %site;
+}
+
+sub data_array {
+  my %site = data_hash(@_);
+
+  ($site{dsn}, $site{user}, $site{pass}, $site{attr});
 }
 
 sub to {
@@ -104,14 +110,16 @@ DBIx::Connect - support for DBI connection (info) via AppConfig
  attr Taint      =  1
 
  # DBIx::AnyDBD usage:
- my @connect_data = DBIx::Connect->data_for('dev_db');
+ my @connect_data = DBIx::Connect->data_array('dev_db');
  my $dbh          = DBIx::AnyDBD->connect(@connect_data, "MyClass");
+
+ # Alzabo usage
+ my %connect_data = DBIx::Connect->data_hash('dev_db');
 
  # pure DBI usage
  use DBIx::Connect;
 
- my $config = shift or die "must give label for config";
- my $dbh    = DBIx::Connect->to($config);
+ my $dbh    = DBIx::Connect->to('dev_db');
 
  # over-ride .appconfig-dbi from the command line
  # not recommended for passwords as C<ps> will reveal the password
@@ -120,14 +128,17 @@ DBIx::Connect - support for DBI connection (info) via AppConfig
 
 =head1 DESCRIPTION
 
-This module facilitates DBI-style or DBIx::AnyDBD-style
+This module facilitates 
+L<DBI|DBI> -style, 
+L<DBIx::AnyDBD|DBIx::AnyDBD> -style, or 
+L<Alzabo|Alzabo> -style
 database connections for sites and applications
-which make use of L<AppConfig|AppConfig>
+which make use of L<AppConfig|AppConfig> and related modules
 to configure their applications via files
 and/or command-line arguments. 
 
-It provides two methods, C<to> and C<data_for> which 
-return a DBI database handle and an array of DBI connection info, 
+It provides three methods, C<to>, C<data_array>, and C<data_hash>
+which return a DBI database handle and an array of DBI connection info, 
 respectively.
 
 Each of the 4 DBI connection parameters (username, password, dsn, attr)
