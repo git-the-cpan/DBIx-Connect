@@ -18,62 +18,86 @@ our @ISA = qw(Exporter);
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-# This allows declaration	use DBIx::Connect ':all';
+# This allows declarationuse DBIx::Connect ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+				   
+				   ) ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(
-	
-);
+		 
+		 );
 
-our $VERSION = sprintf '%s', q{$Revision: 1.9 $} =~ /\S+\s+(\S+)/ ;
+our $VERSION = sprintf '%s', q{$Revision: 1.10 $} =~ /\S+\s+(\S+)/ ;
+
+# Ensures we always have a copy of the original @ARGV, whatever else
+# may be done with it.
+			       our @argv_orig = @ARGV;
 
 # Preloaded methods go here.
 
 # dont you just love the emacs Perl mode :)
 
-			       defined($ENV{DBIX_CONN}) or die
-				   'environmental variable DBIX_CONN not defined';
-
-my $stdin_flag = '<STDIN>';
-
-
 sub data_hash {
     my (undef, $config_name) = @_;
 
+    my $conn_file = '';
+    my $stdin_flag = '<STDIN>';
+
+    local $^W = 0;
+
 #    my $config = AppConfig::Std->new( { CASE=>1 } );
-    my $config = AppConfig::Std->new( { CASE=>1, CREATE => '.*' } );
+    my $config = AppConfig::Std->new({ CASE=>1, CREATE => '.*' });
 
     my $site   = "${config_name}_";
 
-    $config->define("$site$_") for qw(user pass dsn);
-    $config->define("${site}attr" => { ARGCOUNT => ARGCOUNT_HASH });
+    $config->define("dbix_conn_file" => { ARGCOUNT => ARGCOUNT_ONE });
 
-    $config->file($ENV{DBIX_CONN});
-    $config->args;
+    $config->define("$site$_") for qw(user pass dsn);
+
+    $config->define("${site}attr" => { ARGCOUNT => ARGCOUNT_HASH });
+    # print Dumper($config);
+
+    # Necessary because the args method consumes the array with shift - since
+    # we want the command line to override anything else we need to copy it
+    # out so the original @ARGV will be available after we check for a 
+    # file specified on the command line
+
+    my @args = @argv_orig;
+    $config->args(\@args);
+
+    $conn_file = $config->dbix_conn_file() || $ENV{DBIX_CONN};
+    # print "Conn file: $conn_file\n";
+
+    $config->file($conn_file) if $conn_file;
+
+    @args = @argv_orig;
+    $config->args(\@args);
 
     my %site   = $config->varlist("^$site", 1);
+    die "Couldn't find data for $site" if (scalar keys %site == 0);
 
 #    if ($site{pass} eq $stdin_flag) {
     if ($site{pass} and ($site{pass} eq $stdin_flag)) {
 	ReadMode 2; 
-	print "Enter Password (will not be echoed to screen): ";
+	print "Enter Password for $config_name (will not be echoed to screen): ";
 	$site{pass} = <STDIN>;
 	chomp($site{pass});
+
+	print "\n";
+	ReadMode 0;
     }
 
     %site;
 }
 
 sub data_array {
-  my %site = data_hash(@_);
+    my %site = data_hash(@_);
 
-  ($site{dsn}, $site{user}, $site{pass}, $site{attr});
+    ($site{dsn}, $site{user}, $site{pass}, $site{attr});
 }
 
 sub to {
@@ -105,24 +129,24 @@ DBIx::Connect - DBI, DBIx::AnyDBD, and Alzabo database connection (info) via App
 
  # .appconfig-dbi
  [basic]
- user	= postgres
+    user= postgres
  pass   = <STDIN>
- dsn	= dbi:Pg:dbname=mydb
+    dsn= dbi:Pg:dbname=mydb
  attr RaiseError =  0
  attr PrintError =  0
  attr Taint      =  1
 
  # DBIx::AnyDBD usage:
- my @connect_data = DBIx::Connect->data_array('dev_db');
- my $dbh          = DBIx::AnyDBD->connect(@connect_data, "MyClass");
+    my @connect_data = DBIx::Connect->data_array('dev_db');
+my $dbh          = DBIx::AnyDBD->connect(@connect_data, "MyClass");
 
  # Alzabo usage
- my %connect_data = DBIx::Connect->data_hash('dev_db');
+my %connect_data = DBIx::Connect->data_hash('dev_db');
 
  # pure DBI usage
- use DBIx::Connect;
+use DBIx::Connect;
 
- my $dbh    = DBIx::Connect->to('dev_db');
+my $dbh    = DBIx::Connect->to('dev_db');
 
  # over-ride .appconfig-dbi from the command line
  # not recommended for passwords as C<ps> will reveal the password
@@ -216,9 +240,7 @@ None by default.
 
 =head1 AUTHOR
 
-T. M. Brannon <tbone@cpan.org>
-
-Patches from version 1.7 to 1.9 courtesy of 
+T. M. Brannon <tbone@cpan.org> and 
 Martin Jackson <mhjacks - NOSPAN - at - swbell - dot - net>
 
 =head1 SEE ALSO
