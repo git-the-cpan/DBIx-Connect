@@ -1,6 +1,14 @@
 Changes
 Makefile.PL
 MANIFEST
+release
 lib/DBIx/Connect.pm
 scripts/simple.pl
+scripts/complex.pl
+scripts/complex_conf
+scripts/test_conf
+scripts/test_conf2
+scripts/test_dbix_conn.pl
+scripts/README
 test.pl
+testconf

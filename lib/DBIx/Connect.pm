@@ -5,37 +5,23 @@ use AppConfig::Std;
 use Data::Dumper;
 use DBI;
 use Term::ReadKey;
+use Carp;
 
-require 5.005_62;
+require 5.005;
 use strict;
-use warnings;
+use vars qw( @ISA $VERSION );
 
 require Exporter;
 
-our @ISA = qw(Exporter);
+@ISA = qw(Exporter);
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declarationuse DBIx::Connect ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-				   
-				   ) ] );
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw(
-		 
-		 );
-
-our $VERSION = sprintf '%s', q{$Revision: 1.10 $} =~ /\S+\s+(\S+)/ ;
+$VERSION = sprintf '%s', q{$Revision: 1.11 $} =~ /\S+\s+(\S+)/ ;
 
 # Ensures we always have a copy of the original @ARGV, whatever else
-# may be done with it.
-			       our @argv_orig = @ARGV;
+# may be done with it.  AppConfig::Args consumes its argument (@ARGV by default
+# so it is unsafe to call more than once without having the previous copy for
+# reference.
+my @argv_orig = @ARGV;
 
 # Preloaded methods go here.
 
@@ -47,10 +33,8 @@ sub data_hash {
     my $conn_file = '';
     my $stdin_flag = '<STDIN>';
 
-    local $^W = 0;
-
-#    my $config = AppConfig::Std->new( { CASE=>1 } );
-    my $config = AppConfig::Std->new({ CASE=>1, CREATE => '.*' });
+    my $config = AppConfig::Std->new({ CASE=>1, 
+    				CREATE => '.*', ERROR => sub {} });
 
     my $site   = "${config_name}_";
 
@@ -59,35 +43,45 @@ sub data_hash {
     $config->define("$site$_") for qw(user pass dsn);
 
     $config->define("${site}attr" => { ARGCOUNT => ARGCOUNT_HASH });
-    # print Dumper($config);
 
-    # Necessary because the args method consumes the array with shift - since
-    # we want the command line to override anything else we need to copy it
-    # out so the original @ARGV will be available after we check for a 
-    # file specified on the command line
-
+    # This is necessary because of the destructive nature of the args method.
+    # If we want to call this function several times (e.g. for multiple data
+    # sources in the same script or module) the command line overrides will
+    # not be preserved after the first call to data_hash.
+    #
+    # We have to check the args here to see if the config file is passed there
     my @args = @argv_orig;
     $config->args(\@args);
 
+    # Check for a command line arg first, then the environment variable
     $conn_file = $config->dbix_conn_file() || $ENV{DBIX_CONN};
-    # print "Conn file: $conn_file\n";
 
+    # Since all parameters may be passed on the command line, the file isn't
+    # absolutely necessary.
     $config->file($conn_file) if $conn_file;
 
+    # Check args again to ensure that command line parameters override config
+    # file settings for consistent behavior.
     @args = @argv_orig;
     $config->args(\@args);
 
-    my %site   = $config->varlist("^$site", 1);
-    die "Couldn't find data for $site" if (scalar keys %site == 0);
+    # XXX Note that this approach to processings args will leave the original
+    # @ARGV unchanged, so any other modules that process command line arguments
+    # (such as Getopt::Std and Getopt::Long) need to be aware of this.
 
-#    if ($site{pass} eq $stdin_flag) {
+    my %site   = $config->varlist("^$site", 1);
+    die "Couldn't find data for $config_name" if (scalar keys %site == 0);
+
+
     if ($site{pass} and ($site{pass} eq $stdin_flag)) {
+	# Prevents input from being echoed to screen
 	ReadMode 2; 
 	print "Enter Password for $config_name (will not be echoed to screen): ";
 	$site{pass} = <STDIN>;
 	chomp($site{pass});
 
 	print "\n";
+	# Allows input to be directed to the screen again
 	ReadMode 0;
     }
 
@@ -104,13 +98,24 @@ sub to {
 
     my @connect_data = data_array(@_); 
 
-    my $dbh = DBI->connect(@connect_data);
+    my $dbh;
+    
+    eval {
+    	$dbh = DBI->connect(@connect_data);
+    };
 
+    # This will be triggered if the RaiseError attribute is set
+    if ($@)
+    {
+        croak "Error on connection to $_[1]: $@";
+    }
+
+
+    # This will be triggered if the connection fails but RaiseError is not set
     defined $dbh or 
-	die "error on connection to $_[1]: $DBI::errstr";
+	croak "Failed to connect to $_[1]: $DBI::errstr";
 
     $dbh;
-
 }
 
 1;
@@ -123,35 +128,61 @@ DBIx::Connect - DBI, DBIx::AnyDBD, and Alzabo database connection (info) via App
 
 =head1 SYNOPSIS
 
- # .cshrc
+ # .cshrc 
  setenv APPCONFIG /Users/metaperl/.appconfig
  setenv DBIX_CONN "${APPCONFIG}-dbi"
 
+ # Note that the DBIX_CONN environment variable is now optional -
+ # a file can be specified using the command line parameter
+ # -dbix_conn_file, e.g.:
+ perl dbi_script.pl -dbix_conn_file /Users/metaperl/.appconfig-dbi
+
+ # Any number of blocks may be specified in the config file - one block
+ # per connection handle.  Any of the options specified in the file
+ # can be overridden # by using the command line syntax shown below.
+ 
  # .appconfig-dbi
  [basic]
-    user= postgres
+ user= postgres
  pass   = <STDIN>
-    dsn= dbi:Pg:dbname=mydb
+ dsn= dbi:Pg:dbname=mydb
  attr RaiseError =  0
  attr PrintError =  0
  attr Taint      =  1
 
+ [dev_db]
+ user = root
+ pass = w00t!
+ dsn = dbi:mysql:database=mysqldb;host=localhost
+ attr RaiseError = 1
+ attr PrintError = 1
+
  # DBIx::AnyDBD usage:
-    my @connect_data = DBIx::Connect->data_array('dev_db');
-my $dbh          = DBIx::AnyDBD->connect(@connect_data, "MyClass");
+ my @connect_data = DBIx::Connect->data_array('dev_db');
+ my $dbh          = DBIx::AnyDBD->connect(@connect_data, "MyClass");
 
  # Alzabo usage
-my %connect_data = DBIx::Connect->data_hash('dev_db');
+ my %connect_data = DBIx::Connect->data_hash('dev_db');
 
  # pure DBI usage
-use DBIx::Connect;
+ use DBIx::Connect;
 
-my $dbh    = DBIx::Connect->to('dev_db');
+ my $dbh    = DBIx::Connect->to('dev_db');
 
  # over-ride .appconfig-dbi from the command line
  # not recommended for passwords as C<ps> will reveal the password
- perl dbi-script.pl basic -basic_user tim_bunce -basic_pass dbi_rocks
- perl dbi-script.pl basic -basic_attr "RaiseError=1" -basic_attr "Taint=0"
+ perl dbi-script.pl basic -dbix_conn_file .appconfig-dbi \
+ 	-basic_user tim_bunce -basic_pass dbi_rocks
+ perl dbi-script.pl basic -basic_attr "RaiseError=1" \
+ 	-basic_attr "Taint=0"
+
+ # Note that all parameters can be specified on the command line, 
+ # so the file is not strictly necessary.  As a practical matter, 
+ # this is not a likely scenario, but it is supported.
+ perl dbi-script.pl -basic_user basic -basic_pass "<STDIN>" \
+ 	-basic_dsn "dbi:Pg:dbname=basic" -basic_attr "AutoCommit=0"
+
+DBIx::Connect will croak wth the DBI error if it cannot create a valid database handle.
 
 =head1 DESCRIPTION
 
@@ -173,6 +204,25 @@ can be defined via any of the methods supported by AppConfig, meaning
 via a configuration file, or simple-style command-line arguments.
 AppConfig also provides support for both simple and Getopt::Long style,
 but Getopt::Long is overkill for a module this simple.
+
+=head1 PARAMETER PRECEDENCE 
+
+In order to preserve maximum flexibility, DBIx::Connect does not do any
+verification of completeness or correctness of connection parameters, deferring
+these checks to the DBI itself.  This is because different drivers (and the 
+DBI itself) can use environment variables (or nothing) to represent valid 
+connection attributes.
+
+DBIx::Connect maintains a strict priority for overlay of connection paramters:
+
+  * Environment variables
+  * Config file options
+  * Command line parameters
+
+This means that if the user attribute for a connection block is not specified
+either by the file or command line, undef will be sent to the DBI, which will
+instruct it to examine DBI_PASS, if defined, or send undef to the database,
+which is common with certain databases.
 
 =head1 RELATED MODULES / MOTIVATION FOR THIS ONE
 
@@ -242,6 +292,15 @@ None by default.
 
 T. M. Brannon <tbone@cpan.org> and 
 Martin Jackson <mhjacks - NOSPAN - at - swbell - dot - net>
+
+=head1 KNOWN ISSUES
+
+The args method of AppConfig::Args is called on a copy of @ARGV, not the
+actual @ARGV.  This allows us to reparse command line arguments multiple times,
+for multiple calls within the same script/module.  The only (possibly) negative
+effect of this is that the elements of @ARGV will not be consumed as they
+normally would be by the args method.  Be aware of this if you are parsing
+command line options besides the DBIx::Connect ones.
 
 =head1 SEE ALSO
 

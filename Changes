@@ -1,3 +1,8 @@
+2002-12-26  Martin Jackson <mhjacks - AT - swbell DOT net>
+
+	* Various changes to support multiple DSN's per file
+	* Allow override of DBIX_CONN variable on command line
+
 2002-05-05  Terrence Brannon  <metaperl@mac.com>
 
 	* die if environmental variable is not set.

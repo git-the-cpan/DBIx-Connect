@@ -1,0 +1,5 @@
+Herewith are included some sample scripts and config files that were used
+for unit testing DBIx::Connect.  They should give you some idea of how to
+do some pretty interesting things.  Feel free to play around with command
+line arguments and DBI environment variables (such as $DBI_PASS, $DBI_DSN,
+and so on) in conjunction with these configurations

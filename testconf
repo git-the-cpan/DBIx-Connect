@@ -1,0 +1,7 @@
+[test1]
+user = root
+dsn  = dbi:ExampleP:
+
+[test2]
+user = nobody
+dsn  = dbi:ExampleP:

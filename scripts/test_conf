@@ -1,0 +1,15 @@
+[template1]
+dsn dbi:Pg:dbname=template1
+attr ChopBlanks = 1
+attr PrintError = 1
+attr AutoCommit = 1
+
+[slash]
+dsn dbi:mysql:database=slash;host=localhost
+user slash
+#pass <STDIN>
+#pass slash
+attr ChopBlanks = 1
+attr PrintError = 1
+attr RaiseError = 1
+attr AutoCommit = 1

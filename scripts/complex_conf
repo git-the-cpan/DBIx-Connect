@@ -1,0 +1,10 @@
+[dummy]
+dsn = dbi:ExampleP:
+
+[test]
+
+[mysql]
+dsn = dbi:mysql:database=mysql;host=localhost
+user root
+pass <STDIN>
+attr RaiseError = 1
