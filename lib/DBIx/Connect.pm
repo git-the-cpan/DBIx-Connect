@@ -31,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = sprintf '%s', q{$Revision: 1.7 $} =~ /\S+\s+(\S+)/ ;
+our $VERSION = sprintf '%s', q{$Revision: 1.8 $} =~ /\S+\s+(\S+)/ ;
 
 # Preloaded methods go here.
 
@@ -46,7 +46,9 @@ my $stdin_flag = '<STDIN>';
 sub data_hash {
     my (undef, $config_name) = @_;
 
-    my $config = AppConfig::Std->new( { CASE=>1 } );
+#    my $config = AppConfig::Std->new( { CASE=>1 } );
+    my $config = AppConfig::Std->new( { CASE=>1, CREATE => '.*' } );
+
     my $site   = "${config_name}_";
 
     $config->define("$site$_") for qw(user pass dsn);
@@ -57,7 +59,8 @@ sub data_hash {
 
     my %site   = $config->varlist("^$site", 1);
 
-    if ($site{pass} eq $stdin_flag) {
+#    if ($site{pass} eq $stdin_flag) {
+    if ($site{pass} and ($site{pass} eq $stdin_flag)) {
 	ReadMode 2; 
 	print "Enter Password (will not be echoed to screen): ";
 	$site{pass} = <STDIN>;
