@@ -31,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = sprintf '%s', q{$Revision: 1.8 $} =~ /\S+\s+(\S+)/ ;
+our $VERSION = sprintf '%s', q{$Revision: 1.9 $} =~ /\S+\s+(\S+)/ ;
 
 # Preloaded methods go here.
 
@@ -217,6 +217,9 @@ None by default.
 =head1 AUTHOR
 
 T. M. Brannon <tbone@cpan.org>
+
+Patches from version 1.7 to 1.9 courtesy of 
+Martin Jackson <mhjacks - NOSPAN - at - swbell - dot - net>
 
 =head1 SEE ALSO
 
